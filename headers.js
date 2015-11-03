@@ -77,6 +77,10 @@ function encodeOct (number, bytes) {
   return header.substring(0, s.length - bytes) + s
 }
 
+function padNewc(name, n) {
+  return name + Array.apply(null, {length: n}).map(function(){return '\x00'}).join('');
+}
+
 // According to the spec, this is wrong. Only 'old binary' format requires
 // padding, the odc/ SUSv2 format comes w/o padding.
 function padEven (name) {
@@ -244,7 +248,7 @@ var encodeHex = function (number, bytes) {
       16),
     header = '00000000',
     s2 = header.substring(0, 8 - s.length) + s
-  console.log(' * * *' + number + ' -> ' + s2)
+    log.debug(' * * *' + number + ' -> ' + s2)
   return s2
 }
 
@@ -282,12 +286,12 @@ var decodeNewc = function (buf) {
  * @return {Buffer} encoded buffer
  */
 var encodeNewc = function (opts) {
-  opts.name = padEven(opts.name)
-  if (opts.nameSize % 2 !== 0) {
-    opts.nameSize = opts.nameSize + 1
-  }
-  var buf = new Buffer(110 + opts.name.length)
-
+  var remainder = (newc.length + opts.name.length) % 4;
+  var padSize = (remainder === 0)? 0 : 4 - remainder;
+  opts.name = padNewc(opts.name, padSize);
+  opts.nameSize = opts.nameSize + padSize;
+  var buf = new Buffer(newc.length + opts.nameSize)
+  
   buf.write(newc.magic, 0)
   buf.write(encodeHex(opts.ino, 8), 6)
   buf.write(encodeHex(opts.mode, 8), 14)
@@ -367,9 +371,14 @@ exports.newc = newc
 exports.codec = codec
 
 // Keep 1.0.0 compatibility: odc by default
+/*
 exports.size = odc.length
 exports.encode = encodeOdc
 exports.decode = decodeOdc
+*/
+exports.size = newc.length
+exports.encode = encodeNewc
+exports.decode = decodeNewc
 
 // Testing
 if (process.env.NODE_ENV === 'test') {

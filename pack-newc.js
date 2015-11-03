@@ -16,8 +16,9 @@ function PackNewc (opts) {
     return new PackNewc(opts)
   }
 
-  Pack.call(this)
+  Pack.call(this, opts)
 }
+util.inherits(PackNewc, Pack)
 
 PackNewc.prototype.entry = function (header, buffer, callback) {
   if (this._stream) {
@@ -86,11 +87,15 @@ PackNewc.prototype.entry = function (header, buffer, callback) {
   if (Buffer.isBuffer(buffer)) {
     header.fileSize = buffer.length
 
-    this._push(this.codec.encode(header))
+    this._push(this.codec.encode(header))    
     this._push(buffer)
-    if (buffer.length % 2 !== 0) {
-      this._push(new Buffer('\0'))
-    }
+    //** buffer is followed by NUL byte 
+    var remainder = (110 + header.nameSize + buffer.length) % 4;
+    var padSize = ( remainder === 0)? 0 : 4 - remainder;
+    var dataPadBuf = new Buffer(padSize);
+    dataPadBuf.fill('\x00');
+    if (padSize > 0) this._push(dataPadBuf);
+    
     process.nextTick(callback)
     return new Void()
   }
@@ -133,6 +138,6 @@ PackNewc.prototype.entry = function (header, buffer, callback) {
   return sink
 }
 
-util.inherits(PackNewc, Pack)
+// util.inherits(PackNewc, Pack)
 
 exports.PackNewc = PackNewc

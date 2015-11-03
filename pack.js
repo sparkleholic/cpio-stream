@@ -10,11 +10,14 @@ var util = require('util'),
   noop = function noop () {},
 
   // this could also be encoded through headers
+  /*
   END_OF_CPIO = new Buffer(
     '07070700000000000000000000000000' +
     '00000000010000000000000000000001' +
     '300000000000TRAILER!!!'
   ),
+  */
+  END_OF_CPIO = new Buffer('07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000b00000000TRAILER!!!'),
 
   Sink = function (to) {
     Writable.call(this)
@@ -194,6 +197,9 @@ Pack.prototype.finalize = function () {
     return
   }
   this._push(END_OF_CPIO)
+  
+  //FIXME: 4 byte NUL is needed ?
+  this._push('\x00\x00\x00\x00')
 
   var fill = new Buffer(this.padding)
   fill.fill(0)
